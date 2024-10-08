@@ -12,14 +12,28 @@ function Prompt {
 	Write-Host "PS " -ForegroundColor Magenta -NoNewline
 	Write-Host $currentPath -ForegroundColor DarkBlue -NoNewline
 	
-	if (Test-Path .git) {
-		Write-BranchName
-	}
+	Write-BranchName
 
 	return "`n$('>' * ($nestedPromptLevel + 1)) "
 }
 
 function Write-BranchName {
+	$fileName = '.git'       # The name of the file to look for.
+	$dir = $PWD.ProviderPath # Where to start looking (the current dir).
+	
+	# Walk up the directory hierarchy until the first file whose name
+	# matches $fileName is found, and return that file's path.
+	# If no such file is found, $findRepo is (effectively) $null.
+	$findRepo = 
+	do { 
+		if (Test-Path -LiteralPath ($file = "$dir/$fileName")) { 
+			$file # output the path of the file found.
+			break # exit the loop
+		}
+	} while ($dir = Split-Path -LiteralPath $dir)
+
+	if (!$findRepo) { return }
+
 	try {
 		$branch = git rev-parse --abbrev-ref HEAD
 
@@ -33,7 +47,7 @@ function Write-BranchName {
 			Write-Host " ($branch)" -ForegroundColor Cyan -NoNewline
 		}
 	}
- catch {
+	catch {
 		# we'll end up here if we're in a newly initiated git repo
 		Write-Host " (no branches yet)" -ForegroundColor Yellow -NoNewline
 	}
